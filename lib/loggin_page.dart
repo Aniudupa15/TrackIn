@@ -1,8 +1,78 @@
-
 import 'package:flutter/material.dart';
+import 'package:trackin/auth/auth_services.dart';
+import 'package:trackin/individual_page.dart';
+import 'package:trackin/organization_page.dart';
 import 'package:trackin/register_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _rememberMe = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+  void _displayMessageToUser(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+  Future<void> _login() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      DocumentSnapshot userDoc =
+      await _firestore.collection('users').doc(userCredential.user!.email).get();
+      if (userDoc.exists) {
+        String userType = userDoc['userType'];
+        if (userType == 'organization') {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => OrganizationHome()));
+        } else {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => IndividualHome()));
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('User type not found.')),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = 'Login failed. Please try again.';
+      if (e.code == 'user-not-found') {
+        errorMessage = 'No user found for this email.';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Wrong password provided.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -14,7 +84,7 @@ class LoginPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'logo',
+                  'TrackIn',
                   style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 8),
@@ -24,6 +94,7 @@ class LoginPage extends StatelessWidget {
                 ),
                 SizedBox(height: 24),
                 TextFormField(
+                  controller: _emailController,
                   decoration: InputDecoration(
                     labelText: 'Email address',
                     prefixIcon: Icon(Icons.email_outlined),
@@ -32,11 +103,19 @@ class LoginPage extends StatelessWidget {
                 ),
                 SizedBox(height: 16),
                 TextFormField(
-                  obscureText: true,
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: 'Password',
                     prefixIcon: Icon(Icons.lock_outline),
-                    suffixIcon: Icon(Icons.visibility_off),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -46,7 +125,14 @@ class LoginPage extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Checkbox(value: false, onChanged: (value) {}),
+                        Checkbox(
+                          value: _rememberMe,
+                          onChanged: (value) {
+                            setState(() {
+                              _rememberMe = value!;
+                            });
+                          },
+                        ),
                         Text('Remember me'),
                       ],
                     ),
@@ -63,8 +149,10 @@ class LoginPage extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {}, // Login logic
-                    child: Text('Login'),
+                    onPressed: _isLoading ? null : _login,
+                    child: _isLoading
+                        ? CircularProgressIndicator(color: Colors.white)
+                        : Text('Login'),
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 12),
                       backgroundColor: Colors.black,
@@ -86,7 +174,22 @@ class LoginPage extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _socialButton('assets/google.png', onTap: () {}),
+                    _socialButton('assets/google.png', onTap: () async {
+                      setState(() {
+                        _isLoading = true;
+                      });
+                      try {
+                        await AuthServices().signInWithGoogle(context);
+                      } catch (e) {
+                        _displayMessageToUser('Error: ${e.toString()}');
+                      } finally {
+                        if (mounted) {
+                          setState(() {
+                            _isLoading = false;
+                          });
+                        }
+                      }
+                    },),
                     SizedBox(width: 16),
                     _socialButton('assets/apple.png', onTap: () {}),
                     SizedBox(width: 16),
@@ -100,7 +203,7 @@ class LoginPage extends StatelessWidget {
                       context,
                       MaterialPageRoute(builder: (context) => RegisterPage()),
                     );
-                  }, // Navigate to signup
+                  },
                   child: RichText(
                     text: TextSpan(
                       style: TextStyle(color: Colors.black, fontSize: 16),
@@ -117,16 +220,6 @@ class LoginPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Terms of Service'),
-                    SizedBox(width: 16),
-                    Text('Privacy Policy'),
-                  ],
-                ),
-                SizedBox(height: 16),
               ],
             ),
           ),
@@ -152,3 +245,5 @@ class LoginPage extends StatelessWidget {
     );
   }
 }
+
+

@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:trackin/auth/auth.dart';
+import 'package:trackin/individual_page.dart';
+import 'package:trackin/organization_page.dart';
 
 class AuthServices {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -77,7 +79,7 @@ class AuthServices {
           return;
         }
 
-        String? role = userRoleDoc['role'] as String?;
+        String? role = userRoleDoc['userType'] as String?;
         if (role == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Invalid role for user.")),
@@ -86,12 +88,12 @@ class AuthServices {
         }
 
         // Navigate based on role
-        if (role == 'Organization') {
+        if (role == 'organization') {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const OrganizationHome()),
           );
-        } else if (role == 'Individual') {
+        } else if (role == 'individual') {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const IndividualHome()),

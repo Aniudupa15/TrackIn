@@ -2,8 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:trackin/auth/auth.dart';
 import 'package:trackin/home_page.dart';
+import 'package:trackin/individual_page.dart';
 import 'package:trackin/loggin_page.dart';
+import 'package:trackin/organization_page.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -39,7 +42,7 @@ class _AuthPageState extends State<AuthPage> {
     try {
       DocumentSnapshot userRoleDoc =
       await FirebaseFirestore.instance.collection('users').doc(userEmail).get();
-      return userRoleDoc['role'] ?? '';
+      return userRoleDoc['userType'] ?? '';
     } catch (e) {
       if (kDebugMode) {
         print('Error fetching user role: $e');
@@ -53,9 +56,9 @@ class _AuthPageState extends State<AuthPage> {
       return  LoginPage(); // Redirect to LoginPage if the user is not logged in
     }
     switch (userRole) {
-      case 'Organization':
+      case 'organization':
         return const OrganizationHome();
-      case 'Individual':
+      case 'individual':
         return const IndividualHome();
       default:
         return const HomePage(); // Default page if role is undefined
@@ -73,24 +76,4 @@ class _AuthPageState extends State<AuthPage> {
 }
 
 // Placeholder home pages for different roles
-class OrganizationHome extends StatelessWidget {
-  const OrganizationHome({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Organization Dashboard')),
-      body: const Center(child: Text('Welcome, Organization!')),
-    );
-  }
-}
 
-class IndividualHome extends StatelessWidget {
-  const IndividualHome({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Individual Dashboard')),
-      body: const Center(child: Text('Welcome, Individual!')),
-    );
-  }
-}
