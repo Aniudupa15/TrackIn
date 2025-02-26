@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:trackin/auth/auth.dart';
 import 'package:trackin/auth/firebase_options.dart';
 
-import 'home_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

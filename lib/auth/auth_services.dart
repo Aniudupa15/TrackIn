@@ -1,13 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:trackin/auth/auth.dart';
 import 'package:trackin/individual_page.dart';
 import 'package:trackin/organization_page.dart';
-
 class AuthServices {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -86,7 +83,6 @@ class AuthServices {
           );
           return;
         }
-
         // Navigate based on role
         if (role == 'organization') {
           Navigator.pushReplacement(
@@ -113,7 +109,6 @@ class AuthServices {
       );
     }
   }
-
   User? getCurrentUser() {
     return _auth.currentUser;
   }
