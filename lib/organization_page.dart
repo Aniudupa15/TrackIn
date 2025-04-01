@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trackin/organization/add_student_faculty_page.dart';
+import 'package:trackin/organization/assign_faculty.dart';
 import 'package:trackin/organization/dashboard_page.dart';
 import 'package:trackin/organization/profile_page.dart';
 import 'package:trackin/organization/schedule_page.dart';
@@ -17,7 +18,7 @@ class _OrganizationHomeState extends State<OrganizationHome> {
   final List<Widget> _pages = [
     DashboardPage(),
     AddStudentFacultyPage(),
-    SchedulePage(),
+    AssignFacultyPage(),
     ProfilePageOrg(),
   ];
 
