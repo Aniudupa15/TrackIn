@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:trackin/organization/add_student_faculty_page.dart';
+import 'package:trackin/organization/add_student.dart';
 import 'package:trackin/organization/assign_faculty.dart';
 import 'package:trackin/organization/dashboard_page.dart';
 import 'package:trackin/organization/profile_page.dart';
-import 'package:trackin/organization/schedule_page.dart';
 
 class OrganizationHome extends StatefulWidget {
   const OrganizationHome({super.key});
