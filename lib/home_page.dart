@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:trackin/register_page.dart';
+import 'package:trackin/auth/register_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

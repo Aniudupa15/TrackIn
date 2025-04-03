@@ -1,13 +1,13 @@
 import 'package:flutter/cupertino.dart';
 
-class ProfilePageOrg extends StatefulWidget {
-  const ProfilePageOrg({super.key});
+class ProfilePageFac extends StatefulWidget {
+  const ProfilePageFac({super.key});
 
   @override
-  State<ProfilePageOrg> createState() => _ProfilePageOrgState();
+  State<ProfilePageFac> createState() => _ProfilePageFacState();
 }
 
-class _ProfilePageOrgState extends State<ProfilePageOrg> {
+class _ProfilePageFacState extends State<ProfilePageFac> {
   @override
   Widget build(BuildContext context) {
     return const Placeholder();

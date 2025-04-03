@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:trackin/organization/add_student.dart';
 import 'package:trackin/organization/assign_faculty.dart';
-import 'package:trackin/organization/dashboard_page.dart';
-import 'package:trackin/organization/profile_page.dart';
+import 'package:trackin/organization/organization_dashboard_page.dart';
+import 'package:trackin/organization/profile_page_organization.dart';
+import 'package:trackin/organization/schedule_timetable.dart';
 
 class OrganizationHome extends StatefulWidget {
   const OrganizationHome({super.key});
@@ -18,6 +19,7 @@ class _OrganizationHomeState extends State<OrganizationHome> {
     DashboardPage(),
     AddStudentFacultyPage(),
     AssignFacultyPage(),
+    ScheduleTimetable(),
     ProfilePageOrg(),
   ];
 
@@ -35,7 +37,6 @@ class _OrganizationHomeState extends State<OrganizationHome> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Organization Dashboard'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -55,6 +56,7 @@ class _OrganizationHomeState extends State<OrganizationHome> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),
+          BottomNavigationBarItem(icon: Icon(Icons.assignment_ind), label: 'Assign'),
           BottomNavigationBarItem(icon: Icon(Icons.schedule), label: 'Schedule'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],

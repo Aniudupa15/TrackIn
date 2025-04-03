@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:trackin/auth/auth_services.dart';
-import 'package:trackin/individual_page.dart';
-import 'package:trackin/organization_page.dart';
-import 'package:trackin/register_page.dart';
+import 'package:trackin/auth/register_page.dart';
+import 'package:trackin/faculty/faculty_page.dart';
+import 'package:trackin/organization/organization_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:trackin/loggin_page.dart';
+import 'package:trackin/auth/loggin_page.dart';
+import 'package:trackin/faculty/faculty_dashboard.dart';
+import 'package:trackin/faculty/profile_page_faculty.dart';
+import 'package:trackin/faculty/take_attendence.dart';
+import 'package:trackin/faculty/view%20attendence.dart';
 
 class IndividualHome extends StatefulWidget {
   const IndividualHome({super.key});
@@ -12,10 +16,10 @@ class _IndividualHomeState extends State<IndividualHome> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    const Center(child: Text('Dashboard Content')),
-    const Center(child: Text('Add Faculty & Student Photo PDF')),
-    const Center(child: Text('Schedule Classes')),
-    const Center(child: Text('Profile Information')),
+    FacultyDashboard(),
+    ViewAttendance(),
+    TakeAttendence(),
+    const ProfilePageFac()
   ];
 
   void _onItemTapped(int index) {
@@ -47,8 +51,8 @@ class _IndividualHomeState extends State<IndividualHome> {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.picture_as_pdf), label: 'Add PDF'),
-          BottomNavigationBarItem(icon: Icon(Icons.schedule), label: 'Schedule'),
+          BottomNavigationBarItem(icon: Icon(Icons.view_agenda), label: 'View Attendance'),
+          BottomNavigationBarItem(icon: Icon(Icons.camera), label: 'Take Attendance'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         currentIndex: _selectedIndex,
