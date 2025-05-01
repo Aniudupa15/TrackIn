@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:trackin/admin/admin_home.dart';
 import 'package:trackin/auth/auth_services.dart';
 import 'package:trackin/auth/register_page.dart';
+import 'package:trackin/faculty/faculty_dashboard.dart';
 import 'package:trackin/faculty/faculty_page.dart';
 import 'package:trackin/organization/organization_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:trackin/student/student_home.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -26,36 +29,92 @@ class _LoginPageState extends State<LoginPage> {
     _passwordController.dispose();
     super.dispose();
   }
+
   void _displayMessageToUser(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
   }
+
   Future<void> _login() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
+      // Sign in the user with email and password
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      DocumentSnapshot userDoc =
-      await _firestore.collection('users').doc(userCredential.user!.email).get();
-      if (userDoc.exists) {
-        String userType = userDoc['userType'];
-        if (userType == 'organization') {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => OrganizationHome()));
-        } else {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => IndividualHome()));
-        }
+      String userEmail = userCredential.user!.email!;
+      String uid = userCredential.user!.uid;
+
+      // Try multiple approaches to find user data
+      DocumentSnapshot? userRoleDoc;
+      bool isApproved = false;
+
+      // First try with UID
+      userRoleDoc = await _firestore.collection('users').doc(uid).get();
+
+      if (userRoleDoc.exists) {
+        // If found with UID, check status
+        isApproved = (userRoleDoc['status'] ?? '') == 'approved';
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('User type not found.')),
-        );
+        // Try with email (legacy approach)
+        userRoleDoc = await _firestore.collection('users').doc(userEmail).get();
+
+        if (userRoleDoc.exists) {
+          isApproved = (userRoleDoc['status'] ?? '') == 'approved';
+        } else {
+          // Check pending_users collection
+          DocumentSnapshot userPendingDoc = await _firestore.collection('pending_users').doc(userEmail).get();
+
+          if (userPendingDoc.exists) {
+            isApproved = (userPendingDoc['status'] ?? '') == 'approved';
+
+            // If approved but not in users collection, something's wrong
+            if (isApproved) {
+              _displayMessageToUser('Account approved but user data not found. Please contact admin.');
+              await _auth.signOut();
+              return;
+            }
+          } else {
+            _displayMessageToUser('User data not found.');
+            await _auth.signOut();
+            return;
+          }
+        }
       }
+
+      if (!isApproved) {
+        _displayMessageToUser('Your account is pending approval.');
+        await _auth.signOut();
+        return;
+      }
+
+      // If we reach here, the user is approved and we have their user document
+      // Let's check the user type and redirect accordingly
+
+      // Safely accessing userType field
+      Map<String, dynamic> userData = userRoleDoc!.data() as Map<String, dynamic>;
+      String userType = userData['userType'] ?? ''; // Default to empty if not found
+
+      // Redirect based on the userType
+      if (userType == 'admin') {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AdminAddOrganizationPage()));
+      } else if (userType == 'organization') {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => OrganizationHome()));
+      } else if (userType == 'student') {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => StudentHome()));
+      } else if (userType == 'faculty') {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => IndividualHome()));
+      } else {
+        _displayMessageToUser('Unknown user type: $userType');
+        await _auth.signOut();
+      }
+
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Login failed. Please try again.';
       if (e.code == 'user-not-found') {
@@ -63,14 +122,16 @@ class _LoginPageState extends State<LoginPage> {
       } else if (e.code == 'wrong-password') {
         errorMessage = 'Wrong password provided.';
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
+      _displayMessageToUser(errorMessage);
+    } catch (e) {
+      _displayMessageToUser('Unexpected error: ${e.toString()}');
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -189,9 +250,7 @@ class _LoginPageState extends State<LoginPage> {
                           });
                         }
                       }
-                    },),
-                    SizedBox(width: 16),
-                    _socialButton('assets/apple.png', onTap: () {}),
+                    }),
                     SizedBox(width: 16),
                     _socialButton('assets/facebook.png', onTap: () {}),
                   ],
@@ -201,7 +260,7 @@ class _LoginPageState extends State<LoginPage> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => RegisterPage()),
+                      MaterialPageRoute(builder: (context) => FacultyRegisterPage()),
                     );
                   },
                   child: RichText(
@@ -245,5 +304,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-
-

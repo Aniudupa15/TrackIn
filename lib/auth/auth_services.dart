@@ -3,8 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:trackin/admin/admin_home.dart';
+import 'package:trackin/faculty/faculty_dashboard.dart';
 import 'package:trackin/faculty/faculty_page.dart';
 import 'package:trackin/organization/organization_page.dart';
+import 'package:trackin/student/student_home.dart';
+
 class AuthServices {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -64,10 +68,36 @@ class AuthServices {
           );
         }
 
+        // First, try to get user role using UID
         DocumentSnapshot userRoleDoc = await FirebaseFirestore.instance
             .collection('users')
-            .doc(user.email)
+            .doc(user.uid)
             .get();
+
+        // If document doesn't exist using UID, try checking with email
+        // This is for backward compatibility with previously created users
+        if (!userRoleDoc.exists) {
+          // Try to find user by email in a separate collection
+          QuerySnapshot emailQuery = await FirebaseFirestore.instance
+              .collection('userEmails')
+              .where('email', isEqualTo: user.email)
+              .limit(1)
+              .get();
+
+          if (emailQuery.docs.isNotEmpty) {
+            String uid = emailQuery.docs.first['uid'];
+            userRoleDoc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(uid)
+                .get();
+          } else {
+            // Legacy approach - try with email as doc ID
+            userRoleDoc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.email)
+                .get();
+          }
+        }
 
         if (!userRoleDoc.exists) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -89,10 +119,20 @@ class AuthServices {
             context,
             MaterialPageRoute(builder: (context) => const OrganizationHome()),
           );
-        } else if (role == 'individual') {
+        } else if (role == 'faculty') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const IndividualHome()),
+            MaterialPageRoute(builder: (context) =>IndividualHome()),
+          );
+        } else if (role == 'student') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const StudentHome()),
+          );
+        } else if (role == 'admin') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => AdminAddOrganizationPage()),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -109,6 +149,7 @@ class AuthServices {
       );
     }
   }
+
   User? getCurrentUser() {
     return _auth.currentUser;
   }

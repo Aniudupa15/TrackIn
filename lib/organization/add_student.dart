@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -10,199 +9,128 @@ class AddStudentFacultyPage extends StatefulWidget {
   const AddStudentFacultyPage({super.key});
 
   @override
-  _AddStudentFacultyPageState createState() => _AddStudentFacultyPageState();
+  State<AddStudentFacultyPage> createState() => _AddStudentFacultyPageState();
 }
 
-class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> {
+class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
   List<File> _imageFiles = [];
   String? _selectedFolderPath;
   final TextEditingController _folderNameController = TextEditingController();
 
-  // Request storage permission
   Future<bool> _requestPermission() async {
-    PermissionStatus status;
+    if (!Platform.isAndroid) return true;
 
-    if (Platform.isAndroid) {
-      status = await Permission.manageExternalStorage.request(); // Android 11+
-    } else if (Platform.isIOS) {
-      status = await Permission.photos.request();
-    } else {
-      status = PermissionStatus.granted;
+    final status = await Permission.manageExternalStorage.request();
+    if (!status.isGranted) {
+      _showMessage("Storage permission is required!");
     }
-
-    if (status.isGranted) {
-      return true;
-    } else {
-      _showPermissionDeniedMessage();
-      return false;
-    }
+    return status.isGranted;
   }
 
-  // Function to show permission denied message
-  void _showPermissionDeniedMessage() {
-    ScaffoldMessenger.of(context as BuildContext).showSnackBar(
-      SnackBar(
-        content: Text("Storage permission is required to select a folder!"),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-
-  // Function to let user select a folder
   Future<void> _pickFolder() async {
-    bool permissionGranted = await _requestPermission();
-    if (!permissionGranted) return;
+    if (!await _requestPermission()) return;
 
-    try {
-      String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+    final selectedDirectory = await FilePicker.platform.getDirectoryPath();
+    if (selectedDirectory == null) return;
 
-      if (selectedDirectory != null) {
-        setState(() {
-          _selectedFolderPath = selectedDirectory;
-          _imageFiles = _getImageFilesFromFolder(selectedDirectory);
-          _folderNameController.text = basename(selectedDirectory); // Set default folder name
-        });
-
-        if (kDebugMode) {
-          print("Folder Selected: $_selectedFolderPath");
-        }
-        if (kDebugMode) {
-          print("Total Images Found: ${_imageFiles.length}");
-        }
-      } else {
-        if (kDebugMode) {
-          print("No folder selected");
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print("Error picking folder: $e");
-      }
-    }
+    setState(() {
+      _selectedFolderPath = selectedDirectory;
+      _imageFiles = _getImageFilesFromFolder(selectedDirectory);
+      _folderNameController.text = basename(selectedDirectory);
+    });
   }
 
-  // Function to get all image files from the selected folder
-  List<File> _getImageFilesFromFolder(String folderPath) {
-    Directory dir = Directory(folderPath);
-    List<File> imageFiles = [];
-
-    if (dir.existsSync()) {
-      imageFiles = dir
-          .listSync()
-          .where((file) =>
-      file is File &&
-          (file.path.endsWith(".jpg") ||
-              file.path.endsWith(".jpeg") ||
-              file.path.endsWith(".png")))
-          .map((file) => File(file.path))
-          .toList();
-    }
-
-    return imageFiles;
+  List<File> _getImageFilesFromFolder(String path) {
+    final dir = Directory(path);
+    return dir.existsSync()
+        ? dir
+        .listSync()
+        .where((f) =>
+    f is File &&
+        (f.path.endsWith(".jpg") ||
+            f.path.endsWith(".jpeg") ||
+            f.path.endsWith(".png")))
+        .map((f) => File(f.path))
+        .toList()
+        : [];
   }
 
-  // Function to upload images to an API
   Future<void> _uploadFolder() async {
     if (_selectedFolderPath == null || _imageFiles.isEmpty) {
       _showMessage("Please select a folder first!");
       return;
     }
 
-    String newFolderName = _folderNameController.text.trim();
-    if (newFolderName.isEmpty) {
+    String folderName = _folderNameController.text.trim();
+    if (folderName.isEmpty) {
       _showMessage("Folder name cannot be empty!");
       return;
     }
 
-    var request = http.MultipartRequest(
-        "POST", Uri.parse("https://your-api.com/upload"));
+    var request = http.MultipartRequest("POST", Uri.parse("https://your-api.com/upload"));
+    request.fields["folder_name"] = folderName;
 
-    // Add folder name to request
-    request.fields["folder_name"] = newFolderName;
-
-    // Attach image files
     for (var file in _imageFiles) {
       request.files.add(await http.MultipartFile.fromPath("images", file.path));
     }
 
-    try {
-      var response = await request.send();
-      if (response.statusCode == 200) {
-        _showMessage("Folder uploaded successfully!");
-      } else {
-        _showMessage("Failed to upload folder. Error: ${response.reasonPhrase}");
-      }
-    } catch (e) {
-      _showMessage("Error uploading folder: $e");
+    final response = await request.send();
+    if (response.statusCode == 200) {
+      _showMessage("Folder uploaded successfully!");
+    } else {
+      _showMessage("Upload failed: ${response.reasonPhrase}");
     }
   }
 
-  // Function to show messages
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context as BuildContext).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context as BuildContext
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Select Folder, Rename & Upload")),
       body: Column(
         children: [
-          _selectedFolderPath != null
-              ? Padding(
-            padding: EdgeInsets.all(10),
-            child: Column(
-              children: [
-                Text("Folder Path: $_selectedFolderPath",
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                SizedBox(height: 10),
-                TextField(
-                  controller: _folderNameController,
-                  decoration: InputDecoration(
-                    labelText: "Rename Folder",
-                    border: OutlineInputBorder(),
+          if (_selectedFolderPath != null)
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Selected Folder: $_selectedFolderPath", style: const TextStyle(fontWeight: FontWeight.bold)),
+                  TextField(
+                    controller: _folderNameController,
+                    decoration: const InputDecoration(labelText: "Rename Folder"),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          )
-              : Container(),
           Expanded(
             child: _imageFiles.isNotEmpty
                 ? GridView.builder(
-              padding: EdgeInsets.all(10),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              itemCount: _imageFiles.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 crossAxisSpacing: 5,
                 mainAxisSpacing: 5,
               ),
-              itemCount: _imageFiles.length,
-              itemBuilder: (context, index) {
-                return Image.file(_imageFiles[index], fit: BoxFit.cover);
-              },
+              itemBuilder: (_, i) => Image.file(_imageFiles[i], fit: BoxFit.cover),
             )
-                : Center(
-              child: Text(
-                "No images found in the selected folder",
-                style: TextStyle(fontSize: 16),
-              ),
-            ),
+                : const Center(child: Text("No images found")),
           ),
           Padding(
-            padding: EdgeInsets.all(10),
-            child: Column(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton(
-                  onPressed: _pickFolder,
-                  child: Text("Select Folder"),
-                ),
-                SizedBox(height: 10),
+                ElevatedButton(onPressed: _pickFolder, child: const Text("Select Folder")),
                 ElevatedButton(
                   onPressed: _uploadFolder,
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  child: Text("Upload Folder"),
+                  child: const Text("Upload"),
                 ),
               ],
             ),

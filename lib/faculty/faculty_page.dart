@@ -1,64 +1,97 @@
-import 'package:flutter/material.dart';
-import 'package:trackin/auth/loggin_page.dart';
-import 'package:trackin/faculty/faculty_dashboard.dart';
-import 'package:trackin/faculty/profile_page_faculty.dart';
-import 'package:trackin/faculty/take_attendence.dart';
-import 'package:trackin/faculty/view%20attendence.dart';
+  import 'package:flutter/material.dart';
+  import 'package:trackin/auth/loggin_page.dart';
+  import 'package:trackin/faculty/faculty_dashboard.dart';
+  import 'package:trackin/faculty/profile_page_faculty.dart';
+  import 'package:trackin/faculty/take_attendence.dart';
+  import 'package:trackin/faculty/view%20attendence.dart';
 
-class IndividualHome extends StatefulWidget {
-  const IndividualHome({super.key});
+  import '../organization/add_student.dart';
 
-  @override
-  _IndividualHomeState createState() => _IndividualHomeState();
-}
+  class IndividualHome extends StatefulWidget {
+    const IndividualHome({super.key});
 
-class _IndividualHomeState extends State<IndividualHome> {
-  int _selectedIndex = 0;
-
-  final List<Widget> _pages = [
-    FacultyDashboard(),
-    ViewAttendance(),
-    TakeAttendence(),
-    const ProfilePageFac()
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    @override
+    _IndividualHomeState createState() => _IndividualHomeState();
   }
 
-  void _logout(BuildContext context) {
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginPage()));
-  }
+  class _IndividualHomeState extends State<IndividualHome> {
+    int _selectedIndex = 0;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Individual Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _logout(context),
+    final List<Widget> _pages = [
+      FacultyDashboard(),
+      AddStudentFacultyPage(),
+      TakeAttendence(),
+      ProfilePageFac()
+    ];
+
+    void _onItemTapped(int index) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+
+    void _logout(BuildContext context) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginPage()));
+    }
+
+    @override
+    Widget build(BuildContext context) {
+      return Scaffold(
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: _pages,
+        ),
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+                offset: Offset(0, -1),
+              ),
+            ],
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
           ),
-        ],
-      ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.view_agenda), label: 'View Attendance'),
-          BottomNavigationBarItem(icon: Icon(Icons.camera), label: 'Take Attendance'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
-        onTap: _onItemTapped,
-      ),
-    );
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            selectedItemColor: Colors.blueAccent,
+            unselectedItemColor: Colors.grey.shade600,
+            selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            unselectedLabelStyle: TextStyle(fontSize: 12),
+            showUnselectedLabels: true,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.dashboard_outlined),
+                activeIcon: Icon(Icons.dashboard),
+                label: 'Dashboard',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.view_agenda_outlined),
+                activeIcon: Icon(Icons.view_agenda),
+                label: 'View',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.camera_alt_outlined),
+                activeIcon: Icon(Icons.camera_alt),
+                label: 'Take',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline),
+                activeIcon: Icon(Icons.person),
+                label: 'Profile',
+              ),
+            ],
+          ),
+        ),
+
+      );
+    }
   }
-}

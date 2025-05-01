@@ -47,6 +47,9 @@ dependencies:
   path_provider: ^2.1.5
   path: ^1.9.0
   image_picker: ^1.1.2
+  fl_chart: ^0.70.2
+  mailer:
+  random_string:
 
 
 dev_dependencies:

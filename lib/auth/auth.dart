@@ -28,7 +28,7 @@ class _AuthPageState extends State<AuthPage> {
           user = currentUser;
         });
         if (user != null) {
-          userRole = await getUserRole(user!.email!);
+          userRole = await getUserRole(user!.uid);
         }
         setState(() {
           isLoading = false;
@@ -37,11 +37,20 @@ class _AuthPageState extends State<AuthPage> {
     });
   }
 
-  Future<String> getUserRole(String userEmail) async {
+  Future<String> getUserRole(String uid) async {
     try {
+      // Use UID instead of email to fetch user role
       DocumentSnapshot userRoleDoc =
-      await FirebaseFirestore.instance.collection('users').doc(userEmail).get();
-      return userRoleDoc['userType'] ?? '';
+      await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+      if (userRoleDoc.exists) {
+        return userRoleDoc['userType'] ?? '';
+      } else {
+        if (kDebugMode) {
+          print('User document not found for UID: $uid');
+        }
+        return '';
+      }
     } catch (e) {
       if (kDebugMode) {
         print('Error fetching user role: $e');
@@ -52,12 +61,16 @@ class _AuthPageState extends State<AuthPage> {
 
   Widget getHomePage() {
     if (user == null) {
-      return  LoginPage(); // Redirect to LoginPage if the user is not logged in
+      return LoginPage(); // Redirect to LoginPage if the user is not logged in
     }
     switch (userRole) {
       case 'organization':
         return const OrganizationHome();
-      case 'individual':
+      case 'faculty':
+        return const IndividualHome();
+      case 'student':
+        return const IndividualHome();
+      case 'admin':
         return const IndividualHome();
       default:
         return const HomePage(); // Default page if role is undefined
@@ -73,6 +86,3 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 }
-
-// Placeholder home pages for different roles
-

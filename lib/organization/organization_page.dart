@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trackin/auth/loggin_page.dart';
 import 'package:trackin/organization/add_student.dart';
 import 'package:trackin/organization/assign_faculty.dart';
 import 'package:trackin/organization/organization_dashboard_page.dart';
@@ -30,7 +31,7 @@ class _OrganizationHomeState extends State<OrganizationHome> {
   }
 
   void _logout(BuildContext context) {
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginPage()));
   }
 
   @override
