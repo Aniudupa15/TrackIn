@@ -1,0 +1,2 @@
+E:/projects/TrackIn/android/app/.cxx/RelWithDebInfo/3m3v2q6i/x86/CMakeFiles/edit_cache.dir
+E:/projects/TrackIn/android/app/.cxx/RelWithDebInfo/3m3v2q6i/x86/CMakeFiles/rebuild_cache.dir
