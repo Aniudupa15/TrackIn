@@ -1,4 +1,3 @@
-
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -23,6 +22,7 @@ class _ProfilePageFacState extends State<ProfilePageFac> {
   String mobileNumber = "N/A";
   String dateOfBirth = "N/A";
   String address = "N/A";
+  String organizationName = "N/A";
   String? imageUrl;
 
   final ImagePicker _picker = ImagePicker();
@@ -50,6 +50,7 @@ class _ProfilePageFacState extends State<ProfilePageFac> {
           mobileNumber = userDoc.data()?['Mobile Number'] ?? "N/A";
           dateOfBirth = userDoc.data()?['Date of Birth'] ?? "N/A";
           address = userDoc.data()?['Address'] ?? "N/A";
+          organizationName = userDoc.data()?['Organization Name'] ?? "N/A";
           imageUrl = userDoc.data()?['imageUrl'];
         });
       }
@@ -76,6 +77,7 @@ class _ProfilePageFacState extends State<ProfilePageFac> {
         if (field == 'Mobile Number') mobileNumber = value;
         if (field == 'Date of Birth') dateOfBirth = value;
         if (field == 'Address') address = value;
+        if (field == 'Organization Name') organizationName = value;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -132,11 +134,14 @@ class _ProfilePageFacState extends State<ProfilePageFac> {
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () {
                 saveUserData(field, controller.text);
                 Navigator.pop(context);
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.indigo,
+              ),
               child: const Text('Save'),
             ),
           ],
@@ -148,46 +153,56 @@ class _ProfilePageFacState extends State<ProfilePageFac> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromRGBO(250, 249, 246, 1),
+      backgroundColor: const Color(0xFFF4F6FC),
       body: SingleChildScrollView(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 40),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 50),
                 GestureDetector(
                   onTap: _pickImage,
                   child: CircleAvatar(
-                    radius: 85,
-                    backgroundImage: imageUrl != null ? FileImage(File(imageUrl!)) : null,
+                    radius: 75,
+                    backgroundColor: Colors.indigo.shade100,
+                    backgroundImage:
+                    imageUrl != null ? FileImage(File(imageUrl!)) : null,
                     child: imageUrl == null
-                        ? Center(
-                      child: Text("Upload Photo")
-                    )
+                        ? const Icon(Icons.camera_alt, size: 40, color: Colors.white)
                         : null,
                   ),
                 ),
-                const SizedBox(height: 30),
-                buildEditableField("Name", userName, "username"),
-                const SizedBox(height: 15),
-                buildEditableField("Email", email, "email"),
-                const SizedBox(height: 15),
+                const SizedBox(height: 25),
+                Text(
+                  userName,
+                  style: const TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.bold, color: Colors.indigo),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  email,
+                  style: const TextStyle(fontSize: 16, color: Colors.black54),
+                ),
+                const SizedBox(height: 25),
                 buildEditableField("Mobile Number", mobileNumber, "Mobile Number"),
-                const SizedBox(height: 15),
                 buildEditableField("Date of Birth", dateOfBirth, "Date of Birth"),
-                const SizedBox(height: 15),
                 buildEditableField("Address", address, "Address"),
+                buildEditableField("Organization", organizationName, "Organization Name"),
                 const SizedBox(height: 30),
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: _logout,
+                  icon: const Icon(Icons.logout,color: Colors.white,),
+                  label: const Text("Logout",style: TextStyle(color: Colors.white)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromRGBO(255, 125, 41, 1),
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    backgroundColor: Colors.indigo,
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    textStyle: const TextStyle(fontSize: 16),
                   ),
-                  child: Text("Logout"),
                 ),
               ],
             ),
@@ -201,17 +216,37 @@ class _ProfilePageFacState extends State<ProfilePageFac> {
     return GestureDetector(
       onTap: () => _showEditDialog(title, field, value),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color.fromRGBO(255, 125, 41, 1), width: 2),
           color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.indigo.withOpacity(0.1),
+              spreadRadius: 2,
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            )
+          ],
         ),
         child: Row(
           children: [
-            Text('$title: ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(
+              "$title: ",
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: Colors.indigo,
+              ),
+            ),
             Flexible(
-              child: Text(value, style: const TextStyle(fontSize: 16), overflow: TextOverflow.ellipsis),
+              child: Text(
+                value,
+                style: const TextStyle(fontSize: 16),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),

@@ -61,7 +61,7 @@ class _AuthPageState extends State<AuthPage> {
 
   Widget getHomePage() {
     if (user == null) {
-      return LoginPage(); // Redirect to LoginPage if the user is not logged in
+      return HomePage(); // Redirect to LoginPage if the user is not logged in
     }
     switch (userRole) {
       case 'organization':

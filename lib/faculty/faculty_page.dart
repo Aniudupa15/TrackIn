@@ -20,7 +20,7 @@
     final List<Widget> _pages = [
       FacultyDashboard(),
       AddStudentFacultyPage(),
-      TakeAttendence(),
+      TakeAttendance(),
       ProfilePageFac()
     ];
 
@@ -74,9 +74,9 @@
                 label: 'Dashboard',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.view_agenda_outlined),
-                activeIcon: Icon(Icons.view_agenda),
-                label: 'View',
+                icon: Icon(Icons.add_outlined),
+                activeIcon: Icon(Icons.add),
+                label: 'Add',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.camera_alt_outlined),

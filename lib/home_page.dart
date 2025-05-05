@@ -2,359 +2,182 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trackin/auth/register_page.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+
     return Scaffold(
       body: SingleChildScrollView(
+        physics: BouncingScrollPhysics(),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(children: [
-              Image.asset(
-                'assets/img.png',
-              ),
-              Column(
-                children: [
-                  SizedBox(
-                    height: 75,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 14.0),
-                    child: Row(
-                      children: [
-                        Text(
-                          "TrackIn",
-                          style: GoogleFonts.pacifico(
-                            fontSize: 50,
-                            color: Colors.white,
-                          ),
+            Stack(
+              children: [
+                Image.asset(
+                  'assets/img.png',
+                  width: double.infinity,
+                  height: 400,
+                  fit: BoxFit.cover,
+                ),
+                Container(
+                  height: 400,
+                  width: double.infinity,
+                  color: Colors.black.withOpacity(0.5),
+                ),
+                Positioned(
+                  top: 80,
+                  left: 20,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "TrackIn",
+                        style: GoogleFonts.pacifico(
+                          fontSize: 45,
+                          color: Colors.white,
                         ),
-                        SizedBox(
-                          width: 10,
-                        )
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    height: 10,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 14.0),
-                    child: Row(
-                      children: [
-                        Text(
-                          "Smart, Secure,Seamless \nAttendance ",
-                          style: TextStyle(
-                            fontSize: 25,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    height: 20,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 14.0),
-                    child: Row(
-                      children: [
-                        Text(
-                          "Revolutionary AI-powered attendance\ntracking system for modern\norganizations",
-                          style: TextStyle(
-                            fontSize: 20,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    height: 20,
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => FacultyRegisterPage()),
-                      );
-                    },
-                    child: Text(
-                      'Get Started',
-                      style: TextStyle(fontSize: 15, color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(fixedSize: Size(200,50),
-                      backgroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5), // <-- Radius
                       ),
-                    ),
-                  )
+                      SizedBox(height: 10),
+                      Text(
+                        "Smart, Secure, Seamless \nAttendance",
+                        style: TextStyle(
+                          fontSize: 22,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 15),
+                      Text(
+                        "Revolutionary AI-powered attendance\ntracking system for modern organizations.",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FacultyRegisterPage(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text("Get Started", style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 30),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Text(
+                "Key Features",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ),
+            SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                alignment: WrapAlignment.center,
+                children: [
+                  _featureBox(Icons.tag_faces_rounded, "AI Facial", "Recognition"),
+                  _featureBox(Icons.location_on, "Location", "Verification"),
+                  _featureBox(Icons.security, "Secure", "Attendance"),
                 ],
               ),
-            ]),
-            SizedBox(
-              height: 30,
             ),
-            Column(
-              children: [
-                Padding(
-                    padding: const EdgeInsets.only(left: 30.0),
-                    child: Row(
-                      children: [
-                        Text(
-                          "Key Features",
-                          textAlign: TextAlign.start,
-                          style: TextStyle(
-                              fontSize: 25, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(
-                          width: 15,
-                        )
-                      ],
-                    )),
-                Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          color: Colors.black12,
-                          padding: EdgeInsets.all(15),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.tag_faces_rounded,
-                                color: Colors.black,
-                                size: 36.0,
-                              ),
-                              SizedBox(
-                                height: 5,
-                              ),
-                              Text("AI Facial"),
-                              Text("Recognition")
-                            ],
-                          ),
-                        ),
-                        SizedBox(
-                          height: 10,
-                        ),
-                        Container(
-                          color: Colors.black12,
-                          padding: EdgeInsets.all(15),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.location_on,
-                                color: Colors.black,
-                                size: 36.0,
-                              ),
-                              SizedBox(
-                                height: 5,
-                              ),
-                              Text("Location"),
-                              Text("Verification")
-                            ],
-                          ),
-                        ),
-                        SizedBox(
-                          height: 10,
-                        ),
-                        Container(
-                          color: Colors.black12,
-                          padding: EdgeInsets.all(15),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.security,
-                                color: Colors.black,
-                                size: 36.0,
-                              ),
-                              SizedBox(
-                                height: 5,
-                              ),
-                              Text("Secure"),
-                              Text("Attendance")
-                            ],
-                          ),
-                        ),
-                      ],
-                    )),
-              ],
+            SizedBox(height: 40),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Text(
+                "Why Choose TrackIn?",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
             ),
-            SizedBox(
-              height: 30,
+            SizedBox(height: 20),
+            _reasonTile(
+              icon: Icons.check_circle,
+              title: "Effortless Verification",
+              subtitle: "Advanced AI technology ensures quick and accurate attendance tracking.",
             ),
-            Column(
-              children: [
-                Padding(
-                    padding: const EdgeInsets.only(left: 30.0),
-                    child: Row(
-                      children: [
-                        Text(
-                          "Why Choose TrackIn?",
-                          textAlign: TextAlign.start,
-                          style: TextStyle(
-                              fontSize: 25, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(
-                          width: 15,
-                        )
-                      ],
-                    )),
-                Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Column(
-                          children: [
-                            Container(
-                              color: Colors.black12,
-                              padding: EdgeInsets.all(15),
-                              child: Column(
-                                children: [
-                                  Row(children: [
-                                    Icon(
-                                      Icons.check_circle,
-                                      color: Colors.black,
-                                      size: 25.0,
-                                    ),
-                                    SizedBox(
-                                      width: 20,
-                                    ),
-                                    Text(
-                                      "Effortless Verification",
-                                      style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w500),
-                                    ),
-                                  ]),
-                                  Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 45,
-                                      ),
-                                      Text(
-                                        "Advanced AI technology ensures quick \nand accurate attendance tracking",
-                                        style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w400),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(
-                              height: 15,
-                            ),
-                            Container(
-                              color: Colors.black12,
-                              padding: EdgeInsets.all(15),
-                              child: Column(children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.check_circle,
-                                      color: Colors.black,
-                                      size: 25.0,
-                                    ),
-                                    SizedBox(
-                                      width: 20,
-                                    ),
-                                    Text(
-                                      "Real-time Monitoring",
-                                      style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w500),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(
-                                  height: 05,
-                                ),
-                                Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 45,
-                                    ),
-                                    Text(
-                                      "Track attendance status and generate \nreports instantly",
-                                      style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w400),
-                                    ),
-                                  ],
-                                ),
-                              ]),
-                            ),
-                            SizedBox(
-                              height: 15,
-                            ),
-                            Container(
-                              color: Colors.black12,
-                              padding: EdgeInsets.all(15),
-                              child: Column(children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.check_circle,
-                                      color: Colors.black,
-                                      size: 25.0,
-                                    ),
-                                    SizedBox(
-                                      width: 20,
-                                    ),
-                                    Text(
-                                      "Enhanced Security  ",
-                                      style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w500),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(
-                                  height: 05,
-                                ),
-                                Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 45,
-                                    ),
-                                    Text(
-                                      "Prevent proxy attendance with multi\nfactor authentication",
-                                      style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w400),
-                                    ),
-                                  ],
-                                ),
-                              ]),
-                            ),
-                            SizedBox(
-                              height: 15,
-                            ),
-                          ],
-                        ),
-                        SizedBox(
-                          height: 10,
-                        ),
-                      ],
-                    )),
-              ],
-            )
+            _reasonTile(
+              icon: Icons.check_circle,
+              title: "Real-time Monitoring",
+              subtitle: "Track attendance status and generate reports instantly.",
+            ),
+            _reasonTile(
+              icon: Icons.check_circle,
+              title: "Enhanced Security",
+              subtitle: "Prevent proxy attendance with multi-factor authentication.",
+            ),
+            SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _featureBox(IconData icon, String line1, String line2) {
+    return Container(
+      width: 100,
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black12,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: Colors.black, size: 36),
+          SizedBox(height: 5),
+          Text(line1, textAlign: TextAlign.center),
+          Text(line2, textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+
+  Widget _reasonTile({required IconData icon, required String title, required String subtitle}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Container(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.black12,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 28),
+            SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                  SizedBox(height: 5),
+                  Text(subtitle, style: TextStyle(fontSize: 14)),
+                ],
+              ),
+            ),
           ],
         ),
       ),
