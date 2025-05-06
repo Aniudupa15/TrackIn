@@ -142,8 +142,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Anirudha Udupa**  
 📍 Computer Science & Business Systems  
 🎓 Canara Engineering College  
-🔗 [LinkedIn](https://linkedin.com/in/anirudhaudupa)  
-🌐 [Portfolio](https://anirudha.dev)
+🔗 [LinkedIn](https://www.linkedin.com/in/anirudha-udupa-815b0b258/)  
+🌐 [Portfolio](https://aniudupa.vercel.app/)
 
 ---
 
@@ -157,8 +157,8 @@ Fork the repo, create a branch, commit your code, and open a pull request.
 ## 📬 Contact
 
 For questions, collaboration, or support:  
-📧 [anirudha@example.com](mailto:anirudha@example.com)  
-📱 +91-XXXXXXXXXX
+📧 [aniudupa15@gmail.com](mailto:aniudupa15@gmail.com)  
+📱 +91-9972102246
 
 ---
 
