@@ -19,7 +19,6 @@ class _TakeAttendanceState extends State<TakeAttendance> {
   String? _selectedFolder;
   List<String> _folderNames = [];
   String orgName = "";
-  bool _isLoadingFolders = true;
   bool _isLoadingOrgName = true;
   bool _isUploading = false;
 
@@ -46,7 +45,6 @@ class _TakeAttendanceState extends State<TakeAttendance> {
           orgName = userDoc.data()?['Organization Name'] ?? "";
           _isLoadingOrgName = false;
         });
-        _fetchFolderNames();
       }
     } catch (e) {
       _isLoadingOrgName = false;
@@ -54,33 +52,18 @@ class _TakeAttendanceState extends State<TakeAttendance> {
     }
   }
 
-  Future<void> _fetchFolderNames() async {
-    if (orgName.isEmpty) {
-      setState(() => _isLoadingFolders = false);
-      return;
-    }
-
-    setState(() => _isLoadingFolders = true);
-
-    try {
-      final orgRef = FirebaseFirestore.instance.collection('organizations').doc(orgName);
-      final snapshot = await orgRef.get();
-
-      if (snapshot.exists) {
-        final folderList = List<String>.from(snapshot.data()?['folder_names'] ?? []);
-        setState(() {
-          _folderNames = folderList;
-          _isLoadingFolders = false;
-          if (_folderNames.isNotEmpty) _selectedFolder = _folderNames[0];
-        });
-      } else {
-        _isLoadingFolders = false;
-        _showPopup("Error", "No folders found for this organization.");
+  Stream<List<String>> get folderStream {
+    return FirebaseFirestore.instance
+        .collection('organizations')
+        .doc(orgName)
+        .snapshots()
+        .map((snapshot) {
+      final data = snapshot.data();
+      if (data != null && data.containsKey('folder_names')) {
+        return List<String>.from(data['folder_names']);
       }
-    } catch (e) {
-      _isLoadingFolders = false;
-      _showPopup("Error", "Failed to fetch folder names: $e");
-    }
+      return [];
+    });
   }
 
   Future<void> _takePhoto() async {
@@ -145,37 +128,60 @@ class _TakeAttendanceState extends State<TakeAttendance> {
         userName = userDoc.data()?['fullName'] ?? "N/A";
       }
 
-      // Update class count for faculty
       final facultyRef = FirebaseFirestore.instance
           .collection(orgName)
           .doc(userName);
 
+      // Update class count
       final facultySnapshot = await facultyRef.get();
-      int classCount = 0;
-
+      int classCount = (facultySnapshot.data()?['class_count'] ?? 0) + 1;
       if (facultySnapshot.exists) {
-        classCount = (facultySnapshot.data()?['class_count'] ?? 0) + 1;
         await facultyRef.update({'class_count': classCount});
       } else {
-        classCount = 1;
         await facultyRef.set({'class_count': classCount});
       }
 
-      // Update attendance for each missing student
+      // Get all students under faculty
+      final allStudentsSnapshot = await facultyRef.collection('students').get();
+      final allStudentIds = allStudentsSnapshot.docs.map((doc) => doc.id).toList();
+
+      // Derive present students
+      final presentStudents = allStudentIds.where((id) => !missingStudents.contains(id)).toList();
+
+      // Handle missing (absent) students
       for (String student in missingStudents) {
         final studentRef = facultyRef.collection('students').doc(student);
         final studentSnapshot = await studentRef.get();
 
         if (studentSnapshot.exists) {
           int currentAbsences = studentSnapshot.data()?['classes_not_attended_count'] ?? 0;
+          int currentAttendance = studentSnapshot.data()?['attendance_count'] ?? 0;
           await studentRef.update({
-            'attendance_count': studentSnapshot.data()?['attendance_count'] ?? 0 + 1,
+            'attendance_count': currentAttendance + 1,
             'classes_not_attended_count': currentAbsences + 1,
           });
         } else {
           await studentRef.set({
             'attendance_count': 1,
             'classes_not_attended_count': 1,
+          });
+        }
+      }
+
+      // Handle present students
+      for (String student in presentStudents) {
+        final studentRef = facultyRef.collection('students').doc(student);
+        final studentSnapshot = await studentRef.get();
+
+        if (studentSnapshot.exists) {
+          int currentAttendance = studentSnapshot.data()?['attendance_count'] ?? 0;
+          await studentRef.update({
+            'attendance_count': currentAttendance + 1,
+          });
+        } else {
+          await studentRef.set({
+            'attendance_count': 1,
+            'classes_not_attended_count': 0,
           });
         }
       }
@@ -201,28 +207,6 @@ class _TakeAttendanceState extends State<TakeAttendance> {
     );
   }
 
-  Widget _buildDropdown() {
-    return DropdownButtonFormField<String>(
-      decoration: InputDecoration(
-        labelText: "Select Folder",
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-      value: _selectedFolder,
-      items: _folderNames.map((folder) {
-        return DropdownMenuItem<String>(
-          value: folder,
-          child: Text(folder),
-        );
-      }).toList(),
-      onChanged: (newFolder) {
-        setState(() {
-          _selectedFolder = newFolder;
-        });
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -236,12 +220,48 @@ class _TakeAttendanceState extends State<TakeAttendance> {
         child: Center(
           child: Column(
             children: [
-              if (_isLoadingOrgName || _isLoadingFolders)
+              if (_isLoadingOrgName)
                 const CircularProgressIndicator()
-              else if (_folderNames.isEmpty)
-                const Text("No folders available.", style: TextStyle(fontSize: 16))
+              else if (orgName.isEmpty)
+                const Text("Organization not found.")
               else
-                _buildDropdown(),
+                StreamBuilder<List<String>>(
+                  stream: folderStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator();
+                    } else if (snapshot.hasError) {
+                      return const Text("Error loading folders.");
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Text("No folders available.");
+                    } else {
+                      final folders = snapshot.data!;
+                      if (!_folderNames.contains(_selectedFolder)) {
+                        _selectedFolder = folders.first;
+                      }
+                      return DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          labelText: "Select Folder",
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                        value: _selectedFolder,
+                        items: folders.map((folder) {
+                          return DropdownMenuItem<String>(
+                            value: folder,
+                            child: Text(folder),
+                          );
+                        }).toList(),
+                        onChanged: (newFolder) {
+                          setState(() {
+                            _selectedFolder = newFolder;
+                            _folderNames = folders;
+                          });
+                        },
+                      );
+                    }
+                  },
+                ),
 
               const SizedBox(height: 24),
 

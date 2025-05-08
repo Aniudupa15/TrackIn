@@ -27,7 +27,6 @@ class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> {
     _fetchOrgName();
   }
 
-  // Fetch the organization name from Firestore
   Future<void> _fetchOrgName() async {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
@@ -48,7 +47,6 @@ class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> {
     }
   }
 
-  // Request storage permission on Android
   Future<bool> _requestPermission() async {
     if (!Platform.isAndroid) return true;
     final status = await Permission.manageExternalStorage.request();
@@ -58,7 +56,6 @@ class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> {
     return status.isGranted;
   }
 
-  // Pick a folder and list images from it
   Future<void> _pickFolder() async {
     if (!await _requestPermission()) return;
 
@@ -68,13 +65,12 @@ class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> {
     setState(() {
       _selectedFolderPath = selectedDirectory;
       _imageFiles = _getImageFilesFromFolder(selectedDirectory);
-      _folderNameController.text = path.basename(selectedDirectory); // Use alias for path
+      _folderNameController.text = path.basename(selectedDirectory);
     });
   }
 
-  // Get image files from the selected folder
-  List<File> _getImageFilesFromFolder(String path) {
-    final dir = Directory(path);
+  List<File> _getImageFilesFromFolder(String dirPath) {
+    final dir = Directory(dirPath);
     return dir.existsSync()
         ? dir
         .listSync()
@@ -88,7 +84,6 @@ class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> {
         : [];
   }
 
-  // Upload the folder and images, store in Firestore
   Future<void> _uploadFolder() async {
     if (_selectedFolderPath == null || _imageFiles.isEmpty) {
       _showPopup("Error", "Please select a folder with images first.");
@@ -107,7 +102,7 @@ class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> {
     }
 
     setState(() {
-      _isUploading = true; // Start the uploading indicator
+      _isUploading = true;
     });
 
     try {
@@ -119,75 +114,102 @@ class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> {
       request.fields["org_name"] = orgName;
 
       for (var file in _imageFiles) {
-        request.files.add(await http.MultipartFile.fromPath("files", file.path));
+        request.files
+            .add(await http.MultipartFile.fromPath("files", file.path));
       }
 
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
 
       setState(() {
-        _isUploading = false; // Stop the uploading indicator
+        _isUploading = false;
       });
 
       if (response.statusCode == 200) {
         _showPopup("Success", responseBody);
 
-        // After successful upload, store the folder name in Firestore
-        await _storeFolderInFirestore(folderName);
+        final imageFileNames =
+        _imageFiles.map((file) => path.basename(file.path)).toList();
+
+        await _storeFolderInFirestore(folderName, imageFileNames);
       } else {
         _showPopup("Upload Failed", "Status: ${response.statusCode}\n$responseBody");
       }
     } catch (e) {
       setState(() {
-        _isUploading = false; // Stop the uploading indicator on error
+        _isUploading = false;
       });
       _showPopup("Error", "Upload failed: $e");
     }
   }
-
-  // Store folder name in Firestore under the organization
-  Future<void> _storeFolderInFirestore(String folderName) async {
+  Future<void> _storeFolderInFirestore(
+      String folderName, List<String> imageFileNames) async {
     try {
-      // Reference to Firestore
-      final orgRef = FirebaseFirestore.instance.collection('organizations').doc(orgName);
-      final orgDoc = await orgRef.get();
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        _showPopup("Auth Error", "User not logged in.");
+        return;
+      }
 
-      if (orgDoc.exists) {
-        // Update the folder list if the document already exists
-        List<dynamic> folderNames = List.from(orgDoc.data()?['folder_names'] ?? []);
-        if (!folderNames.contains(folderName)) {
-          folderNames.add(folderName); // Add new folder name
-          await orgRef.update({'folder_names': folderNames});
-        }
-      } else {
-        // Create a new document if it doesn't exist
-        await orgRef.set({
-          'folder_names': [folderName],
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      final fullName = userDoc.data()?['fullName'] ?? '';
+      if (fullName.isEmpty) {
+        _showPopup("Error", "User full name not found.");
+        return;
+      }
+
+      final studentsCollection = FirebaseFirestore.instance
+          .collection(orgName)
+          .doc(fullName)
+          .collection('students');
+
+      for (String imageName in imageFileNames) {
+        final baseName = path.basenameWithoutExtension(imageName);
+        await studentsCollection.doc(baseName).set({
+          'image_name': imageName,
+          'folder': folderName,
+          'uploaded_at': FieldValue.serverTimestamp(),
         });
       }
+
+      // Update folder_names array in the organization's document
+      await FirebaseFirestore.instance
+          .collection('organizations')
+          .doc(orgName)
+          .set({
+        'folder_names': FieldValue.arrayUnion([folderName])
+      }, SetOptions(merge: true));
+
     } catch (e) {
       _showPopup("Firestore Error", "Failed to store folder: $e");
     }
   }
 
-  // Show popup with title and message
   void _showPopup(String title, String message) {
     showDialog(
-      context: context, // Correct BuildContext here
+      context: context,
       builder: (_) => AlertDialog(
         title: Text(title),
         content: Text(message),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK")),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK")),
         ],
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Add Students",style: TextStyle(color: Colors.white)),
+        title:
+        const Text("Add Students", style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.indigo,
       ),
       body: _isUploading
@@ -203,14 +225,16 @@ class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> {
                 icon: const Icon(Icons.folder_open),
                 label: const Text("Select Folder"),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 14),
                 ),
               ),
             ),
             const SizedBox(height: 20),
             if (_selectedFolderPath != null) ...[
               Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 elevation: 3,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -218,7 +242,9 @@ class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text("Folder Details",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16)),
                       const SizedBox(height: 10),
                       Text("📁 Path: $_selectedFolderPath",
                           style: const TextStyle(fontSize: 14)),
@@ -235,7 +261,8 @@ class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> {
                       if (orgName.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         Text("🏢 Organization: $orgName",
-                            style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                            style: const TextStyle(
+                                fontSize: 14, color: Colors.grey)),
                       ],
                     ],
                   ),
@@ -243,7 +270,8 @@ class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> {
               ),
               const SizedBox(height: 20),
               const Text("Selected Images",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  style: TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600)),
               const SizedBox(height: 10),
               _imageFiles.isNotEmpty
                   ? GridView.builder(
@@ -259,7 +287,8 @@ class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> {
                 itemBuilder: (_, i) {
                   return ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.file(_imageFiles[i], fit: BoxFit.cover),
+                    child: Image.file(_imageFiles[i],
+                        fit: BoxFit.cover),
                   );
                 },
               )
@@ -273,7 +302,8 @@ class _AddStudentFacultyPageState extends State<AddStudentFacultyPage> {
                 label: const Text("Upload Folder"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 30, vertical: 14),
                   textStyle: const TextStyle(fontSize: 16),
                 ),
               ),
