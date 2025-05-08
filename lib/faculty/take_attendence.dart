@@ -7,7 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 
 class TakeAttendance extends StatefulWidget {
-  const TakeAttendance({Key? key}) : super(key: key);
+  const TakeAttendance({super.key});
 
   @override
   State<TakeAttendance> createState() => _TakeAttendanceState();
@@ -22,6 +22,8 @@ class _TakeAttendanceState extends State<TakeAttendance> {
   bool _isLoadingFolders = true;
   bool _isLoadingOrgName = true;
   bool _isUploading = false;
+
+  var userName;
 
   @override
   void initState() {
@@ -114,7 +116,11 @@ class _TakeAttendanceState extends State<TakeAttendance> {
         Map<String, dynamic> responseMap = json.decode(responseBody);
         List<String> missingStudents = List<String>.from(responseMap['missing_students'] ?? []);
         await _updateAttendance(missingStudents);
-        _showPopup("Success", "Attendance updated successfully.");
+
+        String missingList = missingStudents.isEmpty
+            ? "All students are present."
+            : "Missing students:\n${missingStudents.join("\n")}";
+        _showPopup("Attendance Processed", missingList);
       } else {
         _showPopup("Failed", "Server error: ${response.statusCode}");
       }
@@ -127,32 +133,49 @@ class _TakeAttendanceState extends State<TakeAttendance> {
 
   Future<void> _updateAttendance(List<String> missingStudents) async {
     try {
-      final orgRef = FirebaseFirestore.instance.collection('organizations').doc(orgName);
-      final orgDoc = await orgRef.get();
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return;
 
-      if (!orgDoc.exists) {
-        _showPopup("Error", "Organization not found.");
-        return;
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      if (userDoc.exists) {
+        userName = userDoc.data()?['fullName'] ?? "N/A";
       }
 
-      int classCount = orgDoc.data()?['class_count'] ?? 0;
-      classCount++;
+      // Update class count for faculty
+      final facultyRef = FirebaseFirestore.instance
+          .collection(orgName)
+          .doc(userName);
 
-      await orgRef.update({'class_count': classCount});
+      final facultySnapshot = await facultyRef.get();
+      int classCount = 0;
 
+      if (facultySnapshot.exists) {
+        classCount = (facultySnapshot.data()?['class_count'] ?? 0) + 1;
+        await facultyRef.update({'class_count': classCount});
+      } else {
+        classCount = 1;
+        await facultyRef.set({'class_count': classCount});
+      }
+
+      // Update attendance for each missing student
       for (String student in missingStudents) {
-        final studentRef = orgRef.collection('students').doc(student);
-        final studentDoc = await studentRef.get();
+        final studentRef = facultyRef.collection('students').doc(student);
+        final studentSnapshot = await studentRef.get();
 
-        if (studentDoc.exists) {
+        if (studentSnapshot.exists) {
+          int currentAbsences = studentSnapshot.data()?['classes_not_attended_count'] ?? 0;
           await studentRef.update({
-            'attendance_count': (studentDoc.data()?['attendance_count'] ?? 0) + 1,
-            'missing_classes': FieldValue.arrayUnion([classCount]),
+            'attendance_count': studentSnapshot.data()?['attendance_count'] ?? 0 + 1,
+            'classes_not_attended_count': currentAbsences + 1,
           });
         } else {
           await studentRef.set({
             'attendance_count': 1,
-            'missing_classes': [classCount],
+            'classes_not_attended_count': 1,
           });
         }
       }
@@ -204,7 +227,7 @@ class _TakeAttendanceState extends State<TakeAttendance> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Take Attendance",style: TextStyle(color: Colors.white)),
+        title: const Text("Take Attendance", style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.indigo,
         elevation: 4,
       ),
@@ -224,8 +247,8 @@ class _TakeAttendanceState extends State<TakeAttendance> {
 
               ElevatedButton.icon(
                 onPressed: _takePhoto,
-                icon: const Icon(Icons.camera_alt,color: Colors.white,),
-                label: const Text("Capture Photo",style: TextStyle(color: Colors.white),),
+                icon: const Icon(Icons.camera_alt, color: Colors.white),
+                label: const Text("Capture Photo", style: TextStyle(color: Colors.white)),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                   backgroundColor: Colors.indigo,
@@ -247,6 +270,11 @@ class _TakeAttendanceState extends State<TakeAttendance> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: _isUploading ? null : _submitPhoto,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                       child: _isUploading
                           ? const SizedBox(
                         height: 24,
@@ -257,11 +285,6 @@ class _TakeAttendanceState extends State<TakeAttendance> {
                         ),
                       )
                           : const Text("Upload & Process"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
                     ),
                   ),
                 ],

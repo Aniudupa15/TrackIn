@@ -12,6 +12,7 @@ class FacultyDashboard extends StatefulWidget {
 class _FacultyDashboardState extends State<FacultyDashboard> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   String orgName = "";
+  String userName = "";
   int totalClasses = 0;
   double averageAttendance = 0.0;
   List<Map<String, dynamic>> lowAttendanceList = [];
@@ -20,10 +21,10 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
   @override
   void initState() {
     super.initState();
-    _fetchOrgName();
+    _fetchUserData();
   }
 
-  Future<void> _fetchOrgName() async {
+  Future<void> _fetchUserData() async {
     final currentUser = _auth.currentUser;
     if (currentUser != null) {
       try {
@@ -33,14 +34,17 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
             .get();
 
         if (userDoc.exists && userDoc.data() != null) {
-          orgName = userDoc.data()?['Organization Name'] ?? "";
+          setState(() {
+            orgName = userDoc.data()?['Organization Name'] ?? "";
+            userName = userDoc.data()?['fullName'] ?? "";
+          });
           _fetchDashboardData();
         } else {
           _showPopup("Error", "User document does not contain valid data.");
           setState(() => _isLoading = false);
         }
       } catch (e) {
-        _showPopup("Error", "Failed to fetch organization name: $e");
+        _showPopup("Error", "Failed to fetch user data: $e");
         setState(() => _isLoading = false);
       }
     } else {
@@ -50,42 +54,57 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
   }
 
   Future<void> _fetchDashboardData() async {
-    if (orgName.isEmpty) {
-      _showPopup("Error", "Organization name is empty.");
+    if (orgName.isEmpty || userName.isEmpty) {
+      _showPopup("Error", "Organization name or username is empty.");
       setState(() => _isLoading = false);
       return;
     }
 
     try {
-      final orgRef = FirebaseFirestore.instance.collection('organizations').doc(
-          orgName);
-      final orgSnapshot = await orgRef.get();
+      // Get faculty data based on new schema
+      final facultyRef = FirebaseFirestore.instance
+          .collection(orgName)
+          .doc(userName);
+      final facultySnapshot = await facultyRef.get();
 
-      if (orgSnapshot.exists && orgSnapshot.data() != null) {
-        totalClasses = orgSnapshot.data()?['class_count'] ?? 0;
+      if (facultySnapshot.exists && facultySnapshot.data() != null) {
+        // Get class count from faculty document
+        // Ensure class_count is handled as an integer
+        var classCountValue = facultySnapshot.data()?['class_count'];
+        totalClasses = classCountValue is int ? classCountValue : 0;
 
-        final studentsSnapshot = await orgRef.collection('students').get();
+        // Get students collection for this faculty
+        final studentsSnapshot = await facultyRef.collection('students').get();
         final allStudents = studentsSnapshot.docs;
 
         int totalAttendanceSum = 0;
+        int totalMissingClasses = 0;
         lowAttendanceList.clear();
 
         for (var doc in allStudents) {
           final data = doc.data();
-          int attendance = data['attendance_count'] ?? 0;
-          String name = data['name'] ?? 'Unknown';
+          // Handle potential type issues with attendance_count
+          var attendanceValue = data['attendance_count'];
+          int attendance = attendanceValue is int ? attendanceValue : 0;
+
+          // Handle potential type issues with missing_classes
+          var missingClassesValue = data['classes_not_attended_count'];
+          int missingClasses = missingClassesValue is int ? missingClassesValue : 0;
+
+          String name = doc.id;
 
           totalAttendanceSum += attendance;
+          totalMissingClasses += missingClasses;
 
-          if (attendance >= 2) {
-            lowAttendanceList.add({
-              'name': name,
-              'attendance_count': attendance,
-            });
-          }
+          // Only add students with valid data to the list
+          lowAttendanceList.add({
+            'name': name,
+            'attendance_count': attendance,
+            'missing_classes': missingClasses
+          });
         }
 
-        // Sort and limit to top 3
+        // Sort by attendance (ascending) and limit to top 3 lowest attendance
         lowAttendanceList.sort((a, b) =>
             a['attendance_count'].compareTo(b['attendance_count']));
         if (lowAttendanceList.length > 3) {
@@ -95,45 +114,26 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
         // Calculate average attendance
         int studentCount = allStudents.length;
         if (totalClasses > 0 && studentCount > 0) {
+          // Ensure we're using double for the division
           averageAttendance =
-              (totalAttendanceSum / (totalClasses * studentCount)) * 100;
-        }
+              (totalAttendanceSum.toDouble() / (totalClasses * studentCount)) * 100;
 
-        // Save low attendance data to Firestore
-        await _saveLowAttendanceData();
+          // Handle potential NaN or infinite values
+          if (averageAttendance.isNaN || averageAttendance.isInfinite) {
+            averageAttendance = 0.0;
+          }
+        }
 
         setState(() {
           _isLoading = false;
         });
       } else {
-        _showPopup("Error", "No organization data found.");
+        _showPopup("Error", "No faculty data found.");
         setState(() => _isLoading = false);
       }
     } catch (e) {
       _showPopup("Error", "Failed to fetch dashboard data: $e");
       setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _saveLowAttendanceData() async {
-    if (lowAttendanceList.isNotEmpty) {
-      try {
-        final orgRef = FirebaseFirestore.instance
-            .collection('organizations')
-            .doc(orgName);
-
-        for (var student in lowAttendanceList) {
-          final studentRef = orgRef.collection("students").doc(student['name']);
-
-          await studentRef.set({
-            'name': student['name'],
-            'attendance_count': student['attendance_count'],
-            'timestamp': FieldValue.serverTimestamp(),
-          });
-        }
-      } catch (e) {
-        _showPopup("Error", "Failed to save low attendance data: $e");
-      }
     }
   }
 
@@ -159,7 +159,7 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Faculty Dashboard",style: TextStyle(color: Colors.white)),
+        title: const Text("Faculty Dashboard", style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.indigo,
       ),
       body: Padding(
@@ -280,6 +280,7 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
                           children: [
                             tableCell('Name'),
                             tableCell('Classes Attended'),
+                            tableCell('Classes Missed'),
                           ],
                         ),
                         ...lowAttendanceList.map((entry) {
@@ -287,6 +288,7 @@ class _FacultyDashboardState extends State<FacultyDashboard> {
                             children: [
                               tableCell(entry['name']),
                               tableCell(entry['attendance_count'].toString()),
+                              tableCell(entry['missing_classes'].toString()),
                             ],
                           );
                         }).toList(),
